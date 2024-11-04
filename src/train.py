@@ -10,8 +10,8 @@ from torchvision import transforms
 NUM_EPOCHS = 10
 BATCH_SIZE = 32
 HIDDEN_UNITS = 768
-LEARNING_RATE = 0.001
-
+LEARNING_RATE = 3e-3
+path = os.getcwd()
 # Setup directories
 train_dir = "data/train"
 test_dir = "data/test"
@@ -40,8 +40,10 @@ model = model.ViT(num_classes=num_classes).to(device)
 
 # Set loss and optimizer
 loss_fn = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(),
-                             lr=LEARNING_RATE)
+optimizer = torch.optim.Adam(params=model.parameters(),
+                             lr=LEARNING_RATE, # Base LR from Table 3 for ViT-* ImageNet-1k
+                             betas=(0.9, 0.999), # default values but also mentioned in ViT paper section 4.1 (Training & Fine-tuning)
+                             weight_decay=0.3)
 
 # Start training with help from engine.py
 engine.train(model=model,
@@ -56,3 +58,4 @@ engine.train(model=model,
 utils.save_model(model=model,
                  target_dir="models",
                  model_name="vision_transformer.pth")
+

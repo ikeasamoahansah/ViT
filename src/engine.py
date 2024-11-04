@@ -37,7 +37,7 @@ def train_step(model: torch.nn.Module,
     for batch, (X, y) in enumerate(dataloader):
         # Send data to target device
         X, y = X.to(device), y.to(device)
-
+        
         # 1. Forward pass
         y_pred = model(X)
 
@@ -190,3 +190,4 @@ def train(model: torch.nn.Module,
 
     # Return the filled results at the end of the epochs
     return results
+

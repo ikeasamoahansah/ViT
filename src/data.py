@@ -2,6 +2,7 @@ import os
 
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
+import torchvision
 
 NUM_WORKERS = os.cpu_count()
 
@@ -35,23 +36,33 @@ def create_dataloaders(
                              batch_size=32,
                              num_workers=4)
   """
-  # Use ImageFolder to create dataset(s)
-  train_data = datasets.ImageFolder(train_dir, transform=transform)
-  test_data = datasets.ImageFolder(test_dir, transform=transform)
+
+  train = torchvision.datasets.CIFAR10(
+    root=train_dir,
+    train=True, 
+    transform=transform,
+    download=True
+  )
+  test = torchvision.datasets.CIFAR10(
+    root=test_dir,
+    train=False, 
+    transform=transform,
+    download=True
+  )
 
   # Get class names
-  class_names = train_data.classes
+  class_names = train.classes
 
   # Turn images into data loaders
   train_dataloader = DataLoader(
-      train_data,
+      train,
       batch_size=batch_size,
       shuffle=True,
       num_workers=num_workers,
       pin_memory=True,
   )
   test_dataloader = DataLoader(
-      test_data,
+      test,
       batch_size=batch_size,
       shuffle=False,
       num_workers=num_workers,
@@ -59,3 +70,4 @@ def create_dataloaders(
   )
 
   return train_dataloader, test_dataloader, class_names
+
