@@ -111,7 +111,7 @@ class PatchEmbedding(nn.Module):
 
     def forward(self, X):
         assert X.shape[-1] % self.patch_size == 0, "Input dimensions must be divisible"
-        out_conv = self.conv(X.unsqueeze(0)) # [1, 768, 14, 14]
+        out_conv = self.conv(X) # [1, 768, 14, 14]
         out_conv = self.flatten(out_conv) # [1, 768, 196]
         out_conv = out_conv.permute(0, 2, 1) # [1, 196, 768]
         return out_conv
@@ -289,7 +289,7 @@ print(f"Output shape MLP block: {patched_image_through_mlp_block.shape}")
 class TransformerEncoderBlock(nn.Module):
     def __init__(self, embed_dim=768, num_heads=12, att_dropout=0, batch_first=True, mlp_size=3072, mlp_dropout=0.1, MSA: MutliheadSelfAttention, MLP: MLPBlock):
         super().__init__()
-        self.embed_dim embed_dim
+        self.embed_dim = embed_dim
         self.norm = nn.LayerNorm(normalized_shape=embed_dim)
         self.attention = MSA(embed_dim, num_heads, att_dropout, batch_first)
         self.mlp = MLP(embed_dim, mlp_size, mlp_dropout)
@@ -304,9 +304,10 @@ class TransformerEncoderBlock(nn.Module):
 
 ```py
 class ViT(nn.Module):
-    def __init__(self, img_size=224, in_channels=3, num_layers=12, hidden_size=768, mlp_size=3072, num_heads=12, patch_size=16, att_dropout=0, mlp_dropout=0.1, mlp_size=3072, batch_first=True, embedding_dropout=0.1, num_classes=1000, patch_embed: PatchEmbedding, msa: MultiheadSelfAttention, mlp: MultiLayerPeceptron, encoder=TransformerEncoderBlock):
+    def __init__(self, img_size=224, in_channels=3, num_layers=12, hidden_size=768, mlp_size=3072, num_heads=12, patch_size=16, att_dropout=0, mlp_dropout=0.1, batch_first=True, embedding_dropout=0.1, num_classes=1000, patch_embed: PatchEmbedding, msa: MultiheadSelfAttention, mlp: MultiLayerPeceptron, encoder=TransformerEncoderBlock):
         super().__init__()
-
+        self.hidden_size = hidden_size
+        self.patch_size = patch_size
         assert self.hidden_size % self.patch_size == 0, "Image dimensions are wrong"
         self.num_of_patches = (img_size * img_size) / (patch_size **2)
         self.class_embedding = nn.Parameter(torch.randn(1, 1, hidden_size),
@@ -319,7 +320,7 @@ class ViT(nn.Module):
             embedding_dim=hidden_szie
         ) 
         self.vit = nn.Sequential(*[encoder(
-            hidden_size, 
+            embed_dim=hidden_size, 
             num_heads, 
             att_dropout, 
             batch_first, 
@@ -327,7 +328,7 @@ class ViT(nn.Module):
             mlp_dropout, 
             msa, 
             mlp)
-        ] for _ in range(num_layers))
+         for _ in range(num_layers)])
         self.classifier = nn.Sequential(
             nn.LayerNorm(normalized_shape=hidden_size),
             nn.Linear(in_features=hidden_size, out_features=num_classes)
@@ -336,7 +337,7 @@ class ViT(nn.Module):
     def forward(self, X):
         batch_size = X.shape[0]
         class_token = self.class_embedding.expand(batch_size, -1, -1)
-        X = self.patch_embed(X)
+        X = self.patch_embedding(X)
         X = torch.cat((class_token, X), dim=1)
         X = self.position_embedding + X
         X = self.embedding_dropout(X)
